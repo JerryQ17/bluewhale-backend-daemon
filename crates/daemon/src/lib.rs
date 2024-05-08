@@ -7,12 +7,12 @@ use crate::config::Config;
 
 pub mod config;
 
-pub struct State {
-    backend: Option<Child>,
-    config: Config,
+pub struct AppState {
+    pub backend: Option<Child>,
+    pub config: Config,
 }
 
-impl State {
+impl AppState {
     pub fn new<S: AsRef<Path>>(config_path: S) -> Self {
         Self {
             backend: None,
