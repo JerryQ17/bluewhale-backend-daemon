@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{self, read_to_string};
+use std::net::SocketAddr;
 
 use axum::Router;
 use time::format_description::parse_owned;
@@ -10,7 +11,7 @@ use tracing_subscriber::fmt::{self, time::OffsetTime};
 use tracing_subscriber::layer::SubscriberExt;
 
 use daemon::config::Config;
-use daemon::AppState;
+use daemon::{api, AppState};
 
 const CONFIG_PATH: &str = "config/daemon/config.json";
 
@@ -24,8 +25,12 @@ async fn main() -> io::Result<()> {
 
     config_tracing(&config)?;
 
-    let listener = TcpListener::bind((config.daemon.addr, config.daemon.port)).await?;
-    let app = Router::new().with_state(AppState::new(config));
+    let socket_addr = SocketAddr::from((config.daemon.addr, config.daemon.port));
+    let listener = TcpListener::bind(socket_addr).await?;
+    info!("Listening on {}", socket_addr);
+    let app = Router::new()
+        .nest("/backend", api::backend::routes())
+        .with_state(AppState::new(config));
     axum::serve(listener, app).await
 }
 

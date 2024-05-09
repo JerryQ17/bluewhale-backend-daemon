@@ -5,6 +5,7 @@ use tokio::sync::RwLock;
 
 use crate::config::Config;
 
+pub mod api;
 pub mod config;
 
 #[derive(Debug, Clone)]
