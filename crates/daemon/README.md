@@ -1,13 +1,13 @@
-# bluewhale-backend-daemon
+# daemon
 
-This a daemon that controls the status of BlueWhale backend.
+This is a daemon that controls the status of BlueWhale backend.
 
 ## API Overview
 
-| Method  |  Endpoint  |            Description             |
-|:-------:|:----------:|:----------------------------------:|
-|  `GET`  |    `/`     | Get current status of the backend. |
-| `POST`  | `/update`  |        Updates the backend.        |
-| `PATCH` |  `/start`  |    Starts the backend process.     |
-| `PATCH` |  `/stop`   |  Terminates the backend process.   |
-| `PATCH` | `/restart` |   Restarts the backend process.    |
+| Method  |      Endpoint      |                      Description                      |
+|:-------:|:------------------:|:-----------------------------------------------------:|
+|  `GET`  |     `/backend`     |          Get current status of the backend.           |
+|  `PUT`  |     `/backend`     |    Update the backend with the uploaded zip file.     |
+| `PATCH` |  `/backend/start`  | Start the backend process (no-op if already started). |
+| `PATCH` |  `/backend/stop`   | Stop the backend process (no-op if already stopped).  |
+| `PATCH` | `/backend/restart` |             Restart the backend process.              |
