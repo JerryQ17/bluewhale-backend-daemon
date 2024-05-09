@@ -4,7 +4,9 @@ The bluewhale-backend-daemon project is a semi-automated CI/CD service for the b
 
 It contains:
 
-- a daemon controlling the backend
+|           Name            |  Type  |           Description            |
+|:-------------------------:|:------:|:--------------------------------:|
+| [daemon](./crates/daemon) | binary | a daemon controlling the backend |
 
 ## Workflow
 
@@ -24,7 +26,7 @@ There are two ways to achieve this:
 
 Unfortunately, The SeeCoder internal GitLab cannot be accessed by the public network, which results in:
 
-- calling `git pull` from the service server won't work.
+- Calling `git pull` from the service server won't work.
 - No runner can be registered on the SeeCoder internal GitLab, the triggered GitLab CI/CD pipeline will block forever.
 
 So, the developer has to send the latest project archive to the daemon by itself.
