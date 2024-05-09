@@ -1,22 +1,44 @@
-use std::fs::File;
-use std::path::Path;
+use std::sync::Arc;
 
 use tokio::process::Child;
+use tokio::sync::RwLock;
 
 use crate::config::Config;
 
 pub mod config;
 
-pub struct AppState {
+#[derive(Debug, Clone)]
+pub struct AppState(Arc<RwLock<RawAppState>>);
+
+impl AppState {
+    pub fn new(config: Config) -> Self {
+        Self(Arc::new(RwLock::new(RawAppState::new(config))))
+    }
+
+    pub fn into_inner(self) -> Arc<RwLock<RawAppState>> {
+        self.0
+    }
+
+    pub async fn read(&self) -> tokio::sync::RwLockReadGuard<'_, RawAppState> {
+        self.0.read().await
+    }
+
+    pub async fn write(&self) -> tokio::sync::RwLockWriteGuard<'_, RawAppState> {
+        self.0.write().await
+    }
+}
+
+#[derive(Debug)]
+pub struct RawAppState {
     pub backend: Option<Child>,
     pub config: Config,
 }
 
-impl AppState {
-    pub fn new<S: AsRef<Path>>(config_path: S) -> Self {
+impl RawAppState {
+    pub fn new(config: Config) -> Self {
         Self {
             backend: None,
-            config: serde_json::from_reader(File::open(config_path).unwrap()).unwrap(),
+            config,
         }
     }
 }
