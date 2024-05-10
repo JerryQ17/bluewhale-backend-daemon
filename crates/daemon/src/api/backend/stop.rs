@@ -1,17 +1,31 @@
 use crate::AppState;
 use axum::extract::State;
 use axum::http::StatusCode;
+use tokio::process::Command;
 use tracing::info;
 
 pub async fn handler(State(state): State<AppState>) -> (StatusCode, &'static str) {
-    if state.read().await.backend.is_none() {
-        (StatusCode::OK, "Backend already stopped")
-    } else {
-        let mut child = state.write().await.backend.take().unwrap();
-        while child.try_wait().unwrap().is_some() {
-            child.kill().await.unwrap();
-            info!("killing backend");
+    let port = state.read().await.config.backend.port;
+    match Command::new("fuser")
+        .arg(format!("{}/tcp", port))
+        .output()
+        .await
+    {
+        Ok(output) => {
+            if output.status.success() {
+                let pid = String::from_utf8(output.stdout).unwrap();
+                info!("Killing process with PID {}", pid);
+                Command::new("kill")
+                    .arg("-9")
+                    .arg(pid)
+                    .output()
+                    .await
+                    .expect("Failed to kill process");
+                (StatusCode::OK, "Backend stopped")
+            } else {
+                (StatusCode::OK, "Backend already stopped")
+            }
         }
-        (StatusCode::OK, "Backend stopped")
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to stop backend"),
     }
 }
