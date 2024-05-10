@@ -17,7 +17,6 @@ pub async fn handler(State(state): State<AppState>) -> (StatusCode, &'static str
                 let pid = String::from_utf8(output.stdout).unwrap();
                 info!("Killing process with PID {}", pid);
                 Command::new("kill")
-                    .arg("-9")
                     .arg(pid)
                     .output()
                     .await
