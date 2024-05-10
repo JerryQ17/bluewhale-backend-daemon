@@ -13,6 +13,20 @@ pub async fn handler(State(state): State<AppState>) -> (StatusCode, &'static str
         let wd = &read_state.config.backend.working_directory.join(&read_state.backend_path);
         drop(read_state);
         info!("Working directory: {}", wd.display());
+        info!("Installing dependencies");
+        if Command::new("mvn")
+            .current_dir(wd)
+            .arg("install")
+            .output()
+            .await
+            .is_err()
+        {
+            warn!("Failed to install dependencies");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to install dependencies",
+            );
+        }
         info!("Compiling backend");
         if Command::new("mvn")
             .current_dir(wd)
