@@ -23,15 +23,17 @@ pub async fn handler(
             }
             Some(field) => {
                 let filename = match field.file_name() {
-                    Some(name) => Path::new(name),
+                    Some(name) => name.to_string(),
                     None => {
                         warn!("Failed to read filename, using config");
-                        name.as_ref()
+                        name
                     }
                 };
-                let filepath = working_directory.join(filename);
-                state.write().await.backend_path =
-                    filename.file_stem().unwrap().to_string_lossy().into_owned();
+                let filepath = working_directory.join(&filename);
+                state.write().await.backend_path = filename
+                    .split_once('.')
+                    .map_or(&*filename, |(name, _)| name)
+                    .to_string();
                 info!("Creating temp file at {}", filepath.display());
                 let mut file = match File::create(&filepath).await {
                     Ok(f) => f,
