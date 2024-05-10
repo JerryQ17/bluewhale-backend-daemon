@@ -12,8 +12,9 @@ pub async fn handler(
     mut multipart: Multipart,
 ) -> (StatusCode, &'static str) {
     if let Ok(field) = multipart.next_field().await {
-        let backend_config = &state.read().await.config.backend;
-        let working_directory = &backend_config.working_directory;
+        let backend_config = state.read().await.config.backend.clone();
+        let working_directory = backend_config.working_directory;
+        let name = backend_config.name;
         match field {
             None => {
                 warn!("No file provided");
@@ -21,14 +22,14 @@ pub async fn handler(
             }
             Some(field) => {
                 let filename = match field.file_name() {
-                    Some(name) => name,
+                    Some(name) => name.to_string(),
                     None => {
                         warn!("Failed to read filename, using config");
-                        &backend_config.name
+                        name
                     }
                 };
-                state.write().await.backend_path = filename.to_string();
-                let filepath = working_directory.join(filename);
+                let filepath = working_directory.join(&filename);
+                state.write().await.backend_path = filename;
                 info!("Creating temp file at {}", filepath.display());
                 let mut file = match File::create(&filepath).await {
                     Ok(f) => f,
