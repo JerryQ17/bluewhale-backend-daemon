@@ -32,6 +32,7 @@ impl AppState {
 #[derive(Debug)]
 pub struct RawAppState {
     pub backend: Option<Child>,
+    pub backend_path: String,
     pub config: Config,
 }
 
@@ -39,6 +40,7 @@ impl RawAppState {
     pub fn new(config: Config) -> Self {
         Self {
             backend: None,
+            backend_path: String::new(),
             config,
         }
     }
