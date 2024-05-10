@@ -1,7 +1,10 @@
-use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::env::current_dir;
+use std::fs::{canonicalize, create_dir_all, read_to_string};
+use std::io;
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -10,8 +13,19 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn read<P: AsRef<Path>>(path: P) {
-        serde_json::from_reader(File::open(path).unwrap()).unwrap()
+    pub fn new<P: AsRef<Path>>(path: P) -> io::Result<serde_json::Result<Self>> {
+        match serde_json::from_str::<Self>(&read_to_string(path)?) {
+            Ok(mut config) => {
+                let wd = current_dir()?.join(&config.backend.working_directory);
+                create_dir_all(&wd)?;
+                config.backend.working_directory = canonicalize(wd)?;
+                let log_dir = current_dir()?.join(&config.daemon.log_directory);
+                create_dir_all(&log_dir)?;
+                config.daemon.log_directory = canonicalize(log_dir)?;
+                Ok(Ok(config))
+            }
+            Err(e) => Ok(Err(e)),
+        }
     }
 }
 

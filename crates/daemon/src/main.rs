@@ -1,6 +1,5 @@
-use std::env::current_dir;
 use std::fs::File;
-use std::io::{self, read_to_string};
+use std::io;
 use std::net::SocketAddr;
 
 use axum::Router;
@@ -18,8 +17,7 @@ const CONFIG_PATH: &str = "config/daemon/config.json";
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    let config_str = read_to_string(File::open(CONFIG_PATH)?)?;
-    let config = match serde_json::from_str(&config_str) {
+    let config = match Config::new(CONFIG_PATH)? {
         Ok(c) => c,
         Err(e) => panic!("Invalid config: {}", e),
     };
@@ -44,9 +42,10 @@ fn config_tracing(config: &Config) -> io::Result<()> {
         .with_ansi(true)
         .with_timer(timer.clone());
 
-    let log_directory = current_dir()?.join(&config.daemon.log_directory);
-    std::fs::create_dir_all(&log_directory)?;
-    let log_filepath = log_directory.join(&config.daemon.log_filename);
+    let log_filepath = config
+        .daemon
+        .log_directory
+        .join(&config.daemon.log_filename);
     let log_file = File::create(&log_filepath)?;
 
     let file_subscriber = fmt::layer()
