@@ -16,9 +16,8 @@ impl Config {
     pub fn new<P: AsRef<Path>>(path: P) -> io::Result<serde_json::Result<Self>> {
         match serde_json::from_str::<Self>(&read_to_string(path)?) {
             Ok(mut config) => {
-                let wd = current_dir()?.join(&config.backend.working_directory);
-                create_dir_all(&wd)?;
-                config.backend.working_directory = canonicalize(wd)?;
+                create_dir_all(&config.backend.working_directory)?;
+                config.backend.working_directory = canonicalize(config.backend.working_directory)?;
                 let log_dir = current_dir()?.join(&config.daemon.log_directory);
                 create_dir_all(&log_dir)?;
                 config.daemon.log_directory = canonicalize(log_dir)?;
