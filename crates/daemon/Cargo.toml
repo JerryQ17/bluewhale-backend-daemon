@@ -10,6 +10,8 @@ time = { version = "0.3.36", features = ["local-offset"] }
 
 axum = { version = "0.7.5", features = ["multipart"] }
 axum-macros = "0.4.1"
-tokio = { version = "1.37.0", features = ["process", "rt-multi-thread", "io-util"] }
+futures-util = "0.3.30"
+tokio = { version = "1.37.0", features = ["fs", "io-util", "process", "rt-multi-thread"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["time"] }
+log = "0.4.21"

@@ -29,7 +29,7 @@ async fn main() -> io::Result<()> {
     let listener = TcpListener::bind(socket_addr).await?;
     info!("Listening on {}", socket_addr);
     let app = Router::new()
-        .nest("/backend", api::backend::routes())
+        .nest(api::backend::PATH, api::backend::routes())
         .with_state(AppState::new(config));
     axum::serve(listener, app).await
 }
