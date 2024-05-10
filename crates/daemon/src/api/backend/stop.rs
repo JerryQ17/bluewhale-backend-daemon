@@ -5,6 +5,7 @@ use tokio::process::Command;
 use tracing::info;
 
 pub async fn handler(State(state): State<AppState>) -> (StatusCode, &'static str) {
+    state.write().await.backend = None;
     let port = state.read().await.config.backend.port;
     match Command::new("fuser")
         .arg(format!("{}/tcp", port))
