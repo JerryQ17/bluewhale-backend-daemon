@@ -17,11 +17,19 @@ pub struct BackendStatus<'a> {
 
 pub async fn handler(State(state): State<AppState>) -> String {
     info!("Getting latest git commit info");
+    let read_state = state.read().await;
     let get_latest_commit = Command::new("git")
-        .current_dir(&state.read().await.config.backend.working_directory)
+        .current_dir(
+            &read_state
+                .config
+                .backend
+                .working_directory
+                .join(&read_state.backend_path),
+        )
         .args(["log", "-n", "1"])
         .output()
         .await;
+    drop(read_state);
 
     let latest_commit = match get_latest_commit {
         Ok(ref output) => {
