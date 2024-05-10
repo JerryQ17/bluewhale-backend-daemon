@@ -27,6 +27,7 @@ pub async fn handler(
                         &backend_config.name
                     }
                 };
+                state.write().await.backend_path = filename.to_string();
                 let filepath = working_directory.join(filename);
                 info!("Creating temp file at {}", filepath.display());
                 let mut file = match File::create(&filepath).await {
