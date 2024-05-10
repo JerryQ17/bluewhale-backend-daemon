@@ -28,7 +28,8 @@ pub struct DaemonConfig {
     pub addr: IpAddr,
     pub port: u16,
     pub time_format: String,
-    pub log_filepath: PathBuf,
+    pub log_directory: PathBuf,
+    pub log_filename: String,
 }
 
 impl From<DaemonConfig> for SocketAddr {

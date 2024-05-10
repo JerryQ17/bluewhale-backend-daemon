@@ -1,3 +1,4 @@
+use std::env::current_dir;
 use std::fs::File;
 use std::io::{self, read_to_string};
 use std::net::SocketAddr;
@@ -42,8 +43,14 @@ fn config_tracing(config: &Config) -> io::Result<()> {
         .with_writer(io::stdout)
         .with_ansi(true)
         .with_timer(timer.clone());
+
+    let log_directory = current_dir()?.join(&config.daemon.log_directory);
+    std::fs::create_dir_all(&log_directory)?;
+    let log_filepath = log_directory.join(&config.daemon.log_filename);
+    let log_file = File::create(&log_filepath)?;
+
     let file_subscriber = fmt::layer()
-        .with_writer(File::create(&config.daemon.log_filepath)?)
+        .with_writer(log_file)
         .with_ansi(false)
         .with_timer(timer);
     let subscriber = tracing_subscriber::registry()
@@ -51,6 +58,6 @@ fn config_tracing(config: &Config) -> io::Result<()> {
         .with(file_subscriber);
     tracing::subscriber::set_global_default(subscriber).expect("failed to set default subscriber");
     info!("Tracing configuration complete");
-    info!("Logging to file: {}", config.daemon.log_filepath.display());
+    info!("Logging to file: {}", log_filepath.display());
     Ok(())
 }
