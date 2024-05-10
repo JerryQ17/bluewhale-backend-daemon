@@ -1,5 +1,6 @@
 use axum::extract::{Multipart, State};
 use axum::http::StatusCode;
+use std::path::Path;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
@@ -22,14 +23,15 @@ pub async fn handler(
             }
             Some(field) => {
                 let filename = match field.file_name() {
-                    Some(name) => name.to_string(),
+                    Some(name) => Path::new(name),
                     None => {
                         warn!("Failed to read filename, using config");
-                        name
+                        name.as_ref()
                     }
                 };
-                let filepath = working_directory.join(&filename);
-                state.write().await.backend_path = filename;
+                let filepath = working_directory.join(filename);
+                state.write().await.backend_path =
+                    filename.file_stem().unwrap().to_string_lossy().into_owned();
                 info!("Creating temp file at {}", filepath.display());
                 let mut file = match File::create(&filepath).await {
                     Ok(f) => f,
