@@ -27,20 +27,6 @@ pub async fn handler(State(state): State<AppState>) -> (StatusCode, &'static str
                 "Failed to install dependencies",
             );
         }
-        info!("Compiling backend");
-        if Command::new("mvn")
-            .current_dir(wd)
-            .arg("compile")
-            .output()
-            .await
-            .is_err()
-        {
-            warn!("Failed to compile backend");
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to compile backend",
-            );
-        }
         info!("Starting backend");
         match Command::new("mvn")
             .current_dir(wd)
