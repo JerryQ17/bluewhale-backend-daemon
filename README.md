@@ -4,9 +4,10 @@ The bluewhale-backend-daemon project is a semi-automated CI/CD service for the b
 
 It contains:
 
-|           Name            |  Type  |           Description            |
-|:-------------------------:|:------:|:--------------------------------:|
-| [daemon](./crates/daemon) | binary | a daemon controlling the backend |
+|           Name            |  Type  |               Description               |
+|:-------------------------:|:------:|:---------------------------------------:|
+| [daemon](./crates/daemon) | binary |    a daemon controlling the backend     |
+|    [cli](./crates/cli)    | binary | a command line interface for the daemon |
 
 ## Workflow
 
