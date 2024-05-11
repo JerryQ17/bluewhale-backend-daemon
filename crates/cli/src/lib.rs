@@ -3,6 +3,7 @@ pub mod config;
 use std::env::current_dir;
 use std::fs::{canonicalize, File};
 use std::path::PathBuf;
+use std::time::Duration;
 
 use crate::config::Config;
 use clap::{Parser, Subcommand};
@@ -38,7 +39,10 @@ enum SubCommand {
 impl Cli {
     pub fn handle(self, config: Config) -> String {
         let prefix = format!("http://{}:{}/backend", config.addr, config.port);
-        let client = Client::new();
+        let client = Client::builder()
+            .timeout(Duration::from_secs(300))
+            .build()
+            .unwrap();
         match self.sub_cmd {
             SubCommand::Status => client.get(prefix).send().unwrap().text().unwrap(),
             SubCommand::Start => client
