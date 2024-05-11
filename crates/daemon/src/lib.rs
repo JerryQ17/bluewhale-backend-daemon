@@ -1,5 +1,6 @@
 use std::io;
 use std::path::PathBuf;
+use std::process::Stdio;
 use std::sync::Arc;
 
 use tokio::fs::canonicalize;
@@ -137,7 +138,14 @@ impl Backend {
             if entry.file_name().to_string_lossy().ends_with(".jar") {
                 let path = canonicalize(entry.path()).await?;
                 info!("Found jar: {}", entry.path().display());
-                self.process = Some(Command::new("java").arg("-jar").arg(&path).spawn()?);
+                self.process = Some(
+                    Command::new("java")
+                        .arg("-jar")
+                        .arg(&path)
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::piped())
+                        .spawn()?,
+                );
                 return Ok(());
             }
         }
