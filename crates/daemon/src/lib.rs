@@ -70,7 +70,6 @@ impl Backend {
                     let mut output = String::new();
                     let n = stdout.read_to_string(&mut output).await?;
                     info!("Read {} bytes from backend stdout", n);
-                    process.stdout = Some(stdout);
                     Ok(output)
                 }
                 None => {
@@ -92,7 +91,6 @@ impl Backend {
                     let mut output = String::new();
                     let n = stderr.read_to_string(&mut output).await?;
                     info!("Read {} bytes from backend stderr", n);
-                    process.stderr = Some(stderr);
                     Ok(output)
                 }
                 None => {
