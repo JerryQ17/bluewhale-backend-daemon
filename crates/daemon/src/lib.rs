@@ -25,12 +25,32 @@ impl AppState {
         self.0
     }
 
-    pub async fn read(&self) -> tokio::sync::RwLockReadGuard<'_, Backend> {
-        self.0.read().await
+    pub async fn path(&self) -> PathBuf {
+        self.0.read().await.path()
     }
 
-    pub async fn write(&self) -> tokio::sync::RwLockWriteGuard<'_, Backend> {
-        self.0.write().await
+    pub async fn commit_info(&self) -> io::Result<(String, String)> {
+        self.0.read().await.commit_info().await
+    }
+
+    pub async fn stdout(&self) -> io::Result<Cow<'static, str>> {
+        self.0.write().await.stdout().await
+    }
+    
+    pub async fn stderr(&self) -> io::Result<Cow<'static, str>> {
+        self.0.write().await.stderr().await
+    }
+    
+    pub async fn start(&self) -> io::Result<()> {
+        self.0.write().await.start().await
+    }
+    
+    pub async fn stop(&self) -> io::Result<()> {
+        self.0.write().await.stop().await
+    }
+    
+    pub async fn restart(&self) -> io::Result<()> {
+        self.0.write().await.restart().await
     }
 }
 

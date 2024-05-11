@@ -39,7 +39,7 @@ pub async fn handler(State(state): State<AppState>, mut multipart: Multipart) ->
                     continue;
                 }
                 let temp_path = temp.path();
-                let backend_path = state.read().await.path();
+                let backend_path = state.path().await;
                 info!("Extracting file to {}", &backend_path.display());
                 if let Err(e) = Command::new("tar")
                     .arg("-xf")

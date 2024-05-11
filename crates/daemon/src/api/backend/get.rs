@@ -6,8 +6,7 @@ use tracing::{info, warn};
 use crate::AppState;
 
 pub async fn handler(State(state): State<AppState>) -> String {
-    let backend = &mut state.write().await;
-    let commit_info = match backend.commit_info().await {
+    let commit_info = match state.commit_info().await {
         Ok((stdout, _)) => {
             info!("Get commit info from backend successfully");
             Cow::Owned(stdout)
@@ -17,7 +16,7 @@ pub async fn handler(State(state): State<AppState>) -> String {
             Cow::Borrowed("Failed to get commit info")
         }
     };
-    let stdout = match backend.stdout().await {
+    let stdout = match state.stdout().await {
         Ok(stdout) => {
             info!("Get stdout from backend successfully");
             stdout
@@ -27,7 +26,7 @@ pub async fn handler(State(state): State<AppState>) -> String {
             Cow::Borrowed("Failed to get stdout")
         }
     };
-    let stderr = match backend.stderr().await {
+    let stderr = match state.stderr().await {
         Ok(stderr) => {
             info!("Get stderr from backend successfully");
             stderr
