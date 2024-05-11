@@ -7,50 +7,50 @@ use std::sync::Arc;
 use tokio::fs::canonicalize;
 use tokio::io::AsyncReadExt;
 use tokio::process::{Child, Command};
-use tokio::sync::RwLock;
+use tokio::sync::Mutex;
 use tracing::{info, warn};
 
 pub mod api;
 pub mod config;
 
 #[derive(Debug, Clone)]
-pub struct AppState(Arc<RwLock<Backend>>);
+pub struct AppState(Arc<Mutex<Backend>>);
 
 impl AppState {
     pub fn new<P: Into<PathBuf>>(path: P) -> Self {
-        Self(Arc::new(RwLock::new(Backend::new(path))))
+        Self(Arc::new(Mutex::new(Backend::new(path))))
     }
 
-    pub fn into_inner(self) -> Arc<RwLock<Backend>> {
+    pub fn into_inner(self) -> Arc<Mutex<Backend>> {
         self.0
     }
 
     pub async fn path(&self) -> PathBuf {
-        self.0.read().await.path()
+        self.0.lock().await.path()
     }
 
     pub async fn commit_info(&self) -> io::Result<(String, String)> {
-        self.0.read().await.commit_info().await
+        self.0.lock().await.commit_info().await
     }
 
     pub async fn stdout(&self) -> io::Result<Cow<'static, str>> {
-        self.0.write().await.stdout().await
+        self.0.lock().await.stdout().await
     }
 
     pub async fn stderr(&self) -> io::Result<Cow<'static, str>> {
-        self.0.write().await.stderr().await
+        self.0.lock().await.stderr().await
     }
 
     pub async fn start(&self) -> io::Result<()> {
-        self.0.write().await.start().await
+        self.0.lock().await.start().await
     }
 
     pub async fn stop(&self) -> io::Result<()> {
-        self.0.write().await.stop().await
+        self.0.lock().await.stop().await
     }
 
     pub async fn restart(&self) -> io::Result<()> {
-        self.0.write().await.restart().await
+        self.0.lock().await.restart().await
     }
 }
 
