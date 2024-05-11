@@ -137,8 +137,7 @@ impl Backend {
         match Command::new("mvn")
             .current_dir(&self.path)
             .arg("install")
-            .spawn()?
-            .wait_with_output()
+            .output()
             .await
         {
             Ok(output) => {
