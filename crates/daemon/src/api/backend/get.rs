@@ -20,7 +20,7 @@ pub async fn handler(State(state): State<AppState>) -> String {
     let stdout = match backend.stdout().await {
         Ok(stdout) => {
             info!("Get stdout from backend successfully");
-            Cow::Owned(stdout)
+            stdout
         }
         Err(e) => {
             warn!("Failed to get stdout: {}", e);

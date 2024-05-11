@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::io;
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -63,44 +64,46 @@ impl Backend {
         ))
     }
 
-    pub async fn stdout(&mut self) -> io::Result<String> {
-        match &mut self.process {
-            Some(process) => match process.stdout.take() {
-                Some(mut stdout) => {
-                    let mut output = String::new();
-                    let n = stdout.read_to_string(&mut output).await?;
-                    info!("Read {} bytes from backend stdout", n);
-                    Ok(output)
-                }
-                None => {
-                    warn!("Backend is running but has no stdout");
-                    Ok("Backend is running but has no stdout".to_string())
-                }
-            },
+    pub async fn stdout(&mut self) -> io::Result<Cow<'static, str>> {
+        if self.process.is_none() {
+            warn!("Backend is not running");
+            return Ok(Cow::Borrowed("Backend is not running"));
+        }
+        let stdout = self.process.as_mut().unwrap().stdout.take();
+        match stdout {
+            Some(mut stdout) => {
+                let mut output = String::new();
+                info!(
+                    "Read {} bytes from backend stdout",
+                    stdout.read_to_string(&mut output).await?
+                );
+                Ok(Cow::Owned(output))
+            }
             None => {
-                warn!("Backend is not running");
-                Ok("Backend is not running".to_string())
+                warn!("Backend is running but has no stdout");
+                Ok(Cow::Borrowed("Backend is running but has no stdout"))
             }
         }
     }
 
     pub async fn stderr(&mut self) -> io::Result<String> {
-        match &mut self.process {
-            Some(process) => match process.stderr.take() {
-                Some(mut stderr) => {
-                    let mut output = String::new();
-                    let n = stderr.read_to_string(&mut output).await?;
-                    info!("Read {} bytes from backend stderr", n);
-                    Ok(output)
-                }
-                None => {
-                    warn!("Backend is running but has no stderr");
-                    Ok("Backend is running but has no stderr".to_string())
-                }
-            },
+        if self.process.is_none() {
+            warn!("Backend is not running");
+            return Ok(String::from("Backend is not running"));
+        }
+        let stderr = self.process.as_mut().unwrap().stderr.take();
+        match stderr {
+            Some(mut stderr) => {
+                let mut output = String::new();
+                info!(
+                    "Read {} bytes from backend stderr",
+                    stderr.read_to_string(&mut output).await?
+                );
+                Ok(output)
+            }
             None => {
-                warn!("Backend is not running");
-                Ok("Backend is not running".to_string())
+                warn!("Backend is running but has no stderr");
+                Ok(String::from("Backend is running but has no stderr"))
             }
         }
     }
