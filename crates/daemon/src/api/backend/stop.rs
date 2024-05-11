@@ -6,7 +6,7 @@ use tracing::{info, warn};
 use crate::AppState;
 
 pub async fn handler(State(state): State<AppState>) -> Cow<'static, str> {
-    match state.stop().await {
+    match state.stop() {
         Ok(_) => {
             info!("Backend stopped");
             Cow::Borrowed("Backend stopped\n")

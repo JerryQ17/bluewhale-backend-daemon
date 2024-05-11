@@ -1,14 +1,12 @@
 use std::borrow::Cow;
-use std::io;
+use std::fs::canonicalize;
+use std::io::{self, Read};
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::Arc;
+use std::process::{Child, Command};
+use std::sync::{Arc, Mutex, MutexGuard};
 
-use tokio::fs::canonicalize;
-use tokio::io::AsyncReadExt;
-use tokio::process::{Child, Command};
-use tokio::sync::Mutex;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 pub mod api;
 pub mod config;
@@ -21,36 +19,42 @@ impl AppState {
         Self(Arc::new(Mutex::new(Backend::new(path))))
     }
 
-    pub fn into_inner(self) -> Arc<Mutex<Backend>> {
-        self.0
+    fn lock(&self) -> MutexGuard<Backend> {
+        match self.0.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                error!("Failed to lock AppState: {}", poisoned);
+                poisoned.into_inner()
+            }
+        }
     }
 
-    pub async fn path(&self) -> PathBuf {
-        self.0.lock().await.path()
+    pub fn path(&self) -> PathBuf {
+        self.lock().path()
     }
 
-    pub async fn commit_info(&self) -> io::Result<(String, String)> {
-        self.0.lock().await.commit_info().await
+    pub fn commit_info(&self) -> io::Result<(String, String)> {
+        self.lock().commit_info()
     }
 
-    pub async fn stdout(&self) -> io::Result<Cow<'static, str>> {
-        self.0.lock().await.stdout().await
+    pub fn stdout(&self) -> io::Result<Cow<'static, str>> {
+        self.lock().stdout()
     }
 
-    pub async fn stderr(&self) -> io::Result<Cow<'static, str>> {
-        self.0.lock().await.stderr().await
+    pub fn stderr(&self) -> io::Result<Cow<'static, str>> {
+        self.lock().stderr()
     }
 
-    pub async fn start(&self) -> io::Result<()> {
-        self.0.lock().await.start().await
+    pub fn start(&self) -> io::Result<()> {
+        self.lock().start()
     }
 
-    pub async fn stop(&self) -> io::Result<()> {
-        self.0.lock().await.stop().await
+    pub fn stop(&self) -> io::Result<()> {
+        self.lock().stop()
     }
 
-    pub async fn restart(&self) -> io::Result<()> {
-        self.0.lock().await.restart().await
+    pub fn restart(&self) -> io::Result<()> {
+        self.lock().restart()
     }
 }
 
@@ -72,19 +76,18 @@ impl Backend {
         self.path.clone()
     }
 
-    pub async fn commit_info(&self) -> io::Result<(String, String)> {
+    pub fn commit_info(&self) -> io::Result<(String, String)> {
         let output = Command::new("git")
             .current_dir(&self.path)
             .args(["log", "-n", "1"])
-            .output()
-            .await?;
+            .output()?;
         Ok((
             String::from_utf8_lossy(&output.stdout).into_owned(),
             String::from_utf8_lossy(&output.stderr).into_owned(),
         ))
     }
 
-    pub async fn stdout(&mut self) -> io::Result<Cow<'static, str>> {
+    pub fn stdout(&mut self) -> io::Result<Cow<'static, str>> {
         if self.process.is_none() {
             warn!("Backend is not running");
             return Ok(Cow::Borrowed("Backend is not running"));
@@ -95,7 +98,7 @@ impl Backend {
                 let mut output = String::new();
                 info!(
                     "Read {} bytes from backend stdout",
-                    stdout.read_to_string(&mut output).await?
+                    stdout.read_to_string(&mut output)?
                 );
                 Ok(Cow::Owned(output))
             }
@@ -106,7 +109,7 @@ impl Backend {
         }
     }
 
-    pub async fn stderr(&mut self) -> io::Result<Cow<'static, str>> {
+    pub fn stderr(&mut self) -> io::Result<Cow<'static, str>> {
         if self.process.is_none() {
             warn!("Backend is not running");
             return Ok(Cow::Borrowed("Backend is not running"));
@@ -117,7 +120,7 @@ impl Backend {
                 let mut output = String::new();
                 info!(
                     "Read {} bytes from backend stderr",
-                    stderr.read_to_string(&mut output).await?
+                    stderr.read_to_string(&mut output)?
                 );
                 Ok(Cow::Owned(output))
             }
@@ -128,7 +131,7 @@ impl Backend {
         }
     }
 
-    pub async fn start(&mut self) -> io::Result<()> {
+    pub fn start(&mut self) -> io::Result<()> {
         if self.process.is_some() {
             warn!("Backend is already running");
             return Ok(());
@@ -138,7 +141,6 @@ impl Backend {
             .current_dir(&self.path)
             .arg("install")
             .output()
-            .await
         {
             Ok(output) => {
                 let msg = format!(
@@ -160,7 +162,7 @@ impl Backend {
         }
         for entry in self.path.join("target").read_dir()?.filter_map(Result::ok) {
             if entry.file_name().to_string_lossy().ends_with(".jar") {
-                let path = canonicalize(entry.path()).await?;
+                let path = canonicalize(entry.path())?;
                 info!("Found jar: {}", entry.path().display());
                 self.process = Some(
                     Command::new("java")
@@ -177,10 +179,10 @@ impl Backend {
         Err(io::Error::new(io::ErrorKind::NotFound, "No jar found"))
     }
 
-    pub async fn stop(&mut self) -> io::Result<()> {
+    pub fn stop(&mut self) -> io::Result<()> {
         match &mut self.process {
             Some(process) => {
-                process.kill().await?;
+                process.kill()?;
                 self.process = None;
                 Ok(())
             }
@@ -191,8 +193,8 @@ impl Backend {
         }
     }
 
-    pub async fn restart(&mut self) -> io::Result<()> {
-        self.stop().await?;
-        self.start().await
+    pub fn restart(&mut self) -> io::Result<()> {
+        self.stop()?;
+        self.start()
     }
 }
