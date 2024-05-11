@@ -109,6 +109,7 @@ impl Backend {
             warn!("Backend is already running");
             return Ok(());
         }
+        info!("Installing dependencies");
         match Command::new("mvn")
             .current_dir(&self.path)
             .arg("install")
