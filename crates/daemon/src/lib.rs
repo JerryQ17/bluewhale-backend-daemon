@@ -137,7 +137,6 @@ impl Backend {
                 let path = canonicalize(entry.path()).await?;
                 info!("Found jar: {}", entry.path().display());
                 self.process = Some(Command::new("java").arg("-jar").arg(&path).spawn()?);
-                self.path = path;
                 return Ok(());
             }
         }
