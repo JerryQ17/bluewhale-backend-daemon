@@ -3,6 +3,7 @@ pub mod config;
 use std::env::current_dir;
 use std::fs::{canonicalize, File};
 use std::path::PathBuf;
+use std::time::Duration;
 
 use crate::config::Config;
 use clap::{Parser, Subcommand};
@@ -79,6 +80,7 @@ impl Cli {
                 client
                     .put(prefix)
                     .multipart(form)
+                    .timeout(Duration::from_secs(300))
                     .send()
                     .unwrap()
                     .text()
