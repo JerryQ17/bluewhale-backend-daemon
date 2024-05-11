@@ -2,6 +2,7 @@ pub mod get;
 pub mod put;
 pub mod start;
 pub mod stop;
+pub mod restart;
 
 use axum::routing;
 use axum::Router;
@@ -16,4 +17,5 @@ pub fn routes() -> Router<AppState> {
         .route("/", routing::put(put::handler))
         .route("/start", routing::patch(start::handler))
         .route("/stop", routing::patch(stop::handler))
+        .route("/restart", routing::patch(restart::handler))
 }
