@@ -36,19 +36,19 @@ impl AppState {
     pub async fn stdout(&self) -> io::Result<Cow<'static, str>> {
         self.0.write().await.stdout().await
     }
-    
+
     pub async fn stderr(&self) -> io::Result<Cow<'static, str>> {
         self.0.write().await.stderr().await
     }
-    
+
     pub async fn start(&self) -> io::Result<()> {
         self.0.write().await.start().await
     }
-    
+
     pub async fn stop(&self) -> io::Result<()> {
         self.0.write().await.stop().await
     }
-    
+
     pub async fn restart(&self) -> io::Result<()> {
         self.0.write().await.restart().await
     }
@@ -137,18 +137,20 @@ impl Backend {
         match Command::new("mvn")
             .current_dir(&self.path)
             .arg("install")
-            .output()
+            .spawn()?
+            .wait_with_output()
             .await
         {
             Ok(output) => {
+                let msg = format!(
+                    "maven install status: {}\nmaven install stdout: \n{}maven install stderr: \n{}\n",
+                    output.status,
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                info!("{}", msg);
                 if !output.status.success() {
-                    let msg = format!(
-                        "Failed to install dependencies\nmaven status: {}\n\nMaven stdout: \n{}\nMaven stderr: \n\n{}\n",
-                        output.status,
-                        String::from_utf8_lossy(&output.stdout),
-                        String::from_utf8_lossy(&output.stderr)
-                    );
-                    warn!("{}", &msg);
+                    warn!("Failed to install dependencies");
                     return Err(io::Error::new(io::ErrorKind::Other, msg));
                 }
             }
