@@ -44,7 +44,7 @@ pub async fn handler(State(state): State<AppState>, mut multipart: Multipart) ->
                 if let Err(e) = Command::new("tar")
                     .arg("-xf")
                     .arg(temp_path)
-                    .args(["--strip-components=1", "-C"])
+                    .arg("-C")
                     .arg(backend_path)
                     .output()
                     .await
