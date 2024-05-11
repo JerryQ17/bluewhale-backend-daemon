@@ -65,11 +65,12 @@ impl Backend {
 
     pub async fn stdout(&mut self) -> io::Result<String> {
         match &mut self.process {
-            Some(process) => match &mut process.stdout {
-                Some(ref mut stdout) => {
+            Some(process) => match process.stdout.take() {
+                Some(mut stdout) => {
                     let mut output = String::new();
                     let n = stdout.read_to_string(&mut output).await?;
                     info!("Read {} bytes from backend stdout", n);
+                    process.stdout = Some(stdout);
                     Ok(output)
                 }
                 None => {
@@ -86,11 +87,12 @@ impl Backend {
 
     pub async fn stderr(&mut self) -> io::Result<String> {
         match &mut self.process {
-            Some(process) => match &mut process.stderr {
-                Some(ref mut stderr) => {
+            Some(process) => match process.stderr.take() {
+                Some(mut stderr) => {
                     let mut output = String::new();
                     let n = stderr.read_to_string(&mut output).await?;
                     info!("Read {} bytes from backend stderr", n);
+                    process.stderr = Some(stderr);
                     Ok(output)
                 }
                 None => {
