@@ -38,7 +38,7 @@ pub async fn handler(State(state): State<AppState>) -> String {
         }
     };
     format!(
-        "Commit Info:{}\n\nStandard Output:\n{}\n\nStandard Error:\n{}\n",
+        "Commit Info:\n{}\n\nStandard Output:\n{}\n\nStandard Error:\n{}\n",
         commit_info, stdout, stderr
     )
 }
