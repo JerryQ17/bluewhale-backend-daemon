@@ -1,3 +1,4 @@
+use axum::extract::DefaultBodyLimit;
 use std::fs::File;
 use std::io;
 use std::net::SocketAddr;
@@ -29,7 +30,8 @@ async fn main() -> io::Result<()> {
     info!("Listening on {}", socket_addr);
     let app = Router::new()
         .nest(api::backend::PATH, api::backend::routes())
-        .with_state(AppState::new(config.backend.working_directory));
+        .with_state(AppState::new(config.backend.working_directory))
+        .layer(DefaultBodyLimit::disable());
     axum::serve(listener, app).await
 }
 
