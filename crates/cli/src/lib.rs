@@ -37,6 +37,8 @@ enum SubCommand {
 }
 
 impl Cli {
+    const FIELD_NAME: &'static str = "spring-boot-tar-gz-archive";
+
     pub fn handle(self, config: Config) -> String {
         let prefix = format!("http://{}:{}/backend", config.addr, config.port);
         let client = Client::new();
@@ -75,7 +77,7 @@ impl Cli {
                     let mut tar = tar::Builder::new(enc);
                     tar.append_dir_all("", &dir).expect("Failed to append.");
                 }
-                let form = Form::new().file("file", temp_path).unwrap();
+                let form = Form::new().file(Self::FIELD_NAME, temp_path).unwrap();
 
                 client
                     .put(prefix)

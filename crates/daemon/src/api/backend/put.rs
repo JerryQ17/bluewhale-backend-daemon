@@ -1,86 +1,61 @@
+use std::borrow::Cow;
+use std::io::Write;
+
 use axum::extract::{Multipart, State};
-use axum::http::StatusCode;
-use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tracing::{info, warn};
 
 use crate::AppState;
 
-pub async fn handler(
-    State(state): State<AppState>,
-    mut multipart: Multipart,
-) -> (StatusCode, &'static str) {
-    if let Ok(field) = multipart.next_field().await {
-        let backend_config = state.read().await.config.backend.clone();
-        let working_directory = backend_config.working_directory;
-        let name = backend_config.name;
-        match field {
-            None => {
-                warn!("No file provided");
-                (StatusCode::BAD_REQUEST, "No file provided")
-            }
-            Some(field) => {
-                let filename = match field.file_name() {
-                    Some(name) => name.to_string(),
-                    None => {
-                        warn!("Failed to read filename, using config");
-                        name
+const FIELD_NAME: &str = "spring-boot-tar-gz-archive";
+
+pub async fn handler(State(state): State<AppState>, mut multipart: Multipart) -> Cow<'static, str> {
+    while let Ok(Some(field)) = multipart.next_field().await {
+        match field.name() {
+            Some(FIELD_NAME) => {
+                info!("Creating temp file");
+                let mut temp = match tempfile::NamedTempFile::new() {
+                    Ok(t) => t,
+                    Err(e) => {
+                        let msg = format!("Failed to create temp file: {}", e);
+                        warn!("{}", &msg);
+                        return Cow::Owned(msg);
                     }
                 };
-                let filepath = working_directory.join(&filename);
-                state.write().await.backend_path = filename
-                    .split_once('.')
-                    .map_or(&*filename, |(name, _)| name)
-                    .to_string();
-                info!("Creating temp file at {}", filepath.display());
-                let mut file = match File::create(&filepath).await {
-                    Ok(f) => f,
-                    Err(_) => {
-                        warn!("Failed to create temp file");
-                        return (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            "Failed to create temp file",
-                        );
-                    }
-                };
-                info!("Reading uploaded file");
+                info!("Reading uploaded bytes");
                 let bytes = match field.bytes().await {
                     Ok(b) => b,
-                    Err(_) => {
-                        warn!("Failed to read uploaded file");
-                        return (StatusCode::BAD_REQUEST, "Failed to read uploaded file");
+                    Err(e) => {
+                        let msg = format!("Failed to read bytes from field: {}", e);
+                        warn!("{}", &msg);
+                        return Cow::Owned(msg);
                     }
                 };
-                info!("Writing bytes to {}", filepath.display());
-                if file.write_all(&bytes).await.is_err() {
-                    warn!("Failed to write bytes to temp file");
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to write to temp file",
-                    );
+                info!("Writing {} bytes to temp file", bytes.len());
+                if let Err(e) = temp.write_all(bytes.as_ref()) {
+                    let msg = format!("Failed to write bytes to temp file: {}", e);
+                    warn!("{}", &msg);
+                    return Cow::Owned(msg);
                 }
-                info!("Extracting file to {}", working_directory.display());
-                if Command::new("tar")
+                let temp_path = temp.path();
+                let backend_path = state.read().await.path();
+                info!("Extracting file to {}", &backend_path.display());
+                if let Err(e) = Command::new("tar")
                     .arg("-xf")
-                    .arg(&filepath)
-                    .arg("-C")
-                    .arg(working_directory)
-                    .status()
+                    .arg(temp_path)
+                    .args(["--strip-components=1", "-C"])
+                    .arg(backend_path)
+                    .output()
                     .await
-                    .is_err()
                 {
-                    warn!("Failed to extract file");
-                    return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to extract file");
+                    let msg = format!("Failed to extract file: {}", e);
+                    warn!("{}", &msg);
+                    return Cow::Owned(msg);
                 }
-                info!("Deleting temp file");
-                if tokio::fs::remove_file(filepath).await.is_err() {
-                    warn!("Failed to delete temp file");
-                }
-                (StatusCode::OK, "File uploaded successfully")
+                return Cow::Borrowed("File uploaded successfully");
             }
+            invalid => warn!("Invalid field name: {:?}", invalid),
         }
-    } else {
-        (StatusCode::BAD_REQUEST, "Failed to read file")
     }
+    Cow::Borrowed("No valid part provided")
 }

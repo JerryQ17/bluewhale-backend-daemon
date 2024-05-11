@@ -29,7 +29,7 @@ async fn main() -> io::Result<()> {
     info!("Listening on {}", socket_addr);
     let app = Router::new()
         .nest(api::backend::PATH, api::backend::routes())
-        .with_state(AppState::new(config));
+        .with_state(AppState::new(config.backend.working_directory));
     axum::serve(listener, app).await
 }
 

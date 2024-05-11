@@ -1,10 +1,12 @@
-use crate::AppState;
-use axum::extract::State;
-use axum::http::StatusCode;
+use std::borrow::Cow;
 
-pub async fn handler(State(state): State<AppState>) -> (StatusCode, &'static str) {
-    match super::stop::handler(State(state.clone())).await {
-        (StatusCode::OK, _) => super::start::handler(State(state)).await,
-        (status, message) => (status, message),
+use axum::extract::State;
+
+use crate::AppState;
+
+pub async fn handler(State(state): State<AppState>) -> Cow<'static, str> {
+    match state.write().await.restart().await {
+        Ok(_) => Cow::Borrowed("Backend restarted\n"),
+        Err(e) => Cow::Owned(format!("Failed to restart backend: {}\n", e)),
     }
 }
