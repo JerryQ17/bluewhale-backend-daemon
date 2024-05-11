@@ -60,22 +60,21 @@ impl Cli {
                 .text()
                 .unwrap(),
             SubCommand::Update { dir } => {
-                let dir = canonicalize(
-                    current_dir()
-                        .unwrap()
-                        .join(dir.unwrap_or_else(|| PathBuf::from("."))),
-                )
-                .unwrap();
-                println!("{:?}", &dir);
-                let temp_name = format!("{}.tar.gz", dir.file_stem().unwrap().to_string_lossy());
-                println!("{:?}", &temp_name);
-                let temp = File::create(&temp_name).expect("Failed to create temp file.");
-
-                let enc = GzEncoder::new(&temp, Compression::default());
-                let mut tar = tar::Builder::new(enc);
-                tar.append_dir_all("", &dir).expect("Failed to append.");
-
-                let form = Form::new().file("file", temp_name).unwrap();
+                let cwd = current_dir().unwrap();
+                let dir = canonicalize(cwd.join(dir.unwrap_or(PathBuf::from(".")))).unwrap();
+                println!("compressing directory: {:?}", &dir);
+                let temp_path = cwd.join(format!(
+                    "{}.tar.gz",
+                    dir.file_stem().unwrap().to_string_lossy()
+                ));
+                println!("temp file path: {:?}", &temp_path);
+                {
+                    let temp = File::create(&temp_path).expect("Failed to create temp file.");
+                    let enc = GzEncoder::new(&temp, Compression::default());
+                    let mut tar = tar::Builder::new(enc);
+                    tar.append_dir_all("", &dir).expect("Failed to append.");
+                }
+                let form = Form::new().file("file", temp_path).unwrap();
 
                 client
                     .put(prefix)
