@@ -19,7 +19,7 @@ impl AppState {
         Self(Arc::new(Mutex::new(Backend::new(path))))
     }
 
-    fn lock(&self) -> MutexGuard<Backend> {
+    pub fn lock(&self) -> MutexGuard<Backend> {
         match self.0.lock() {
             Ok(guard) => guard,
             Err(poisoned) => {
