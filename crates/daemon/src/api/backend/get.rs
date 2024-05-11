@@ -30,7 +30,7 @@ pub async fn handler(State(state): State<AppState>) -> String {
     let stderr = match backend.stderr().await {
         Ok(stderr) => {
             info!("Get stderr from backend successfully");
-            Cow::Owned(stderr)
+            stderr
         }
         Err(e) => {
             warn!("Failed to get stderr: {}", e);

@@ -86,10 +86,10 @@ impl Backend {
         }
     }
 
-    pub async fn stderr(&mut self) -> io::Result<String> {
+    pub async fn stderr(&mut self) -> io::Result<Cow<'static, str>> {
         if self.process.is_none() {
             warn!("Backend is not running");
-            return Ok(String::from("Backend is not running"));
+            return Ok(Cow::Borrowed("Backend is not running"));
         }
         let stderr = self.process.as_mut().unwrap().stderr.take();
         match stderr {
@@ -99,11 +99,11 @@ impl Backend {
                     "Read {} bytes from backend stderr",
                     stderr.read_to_string(&mut output).await?
                 );
-                Ok(output)
+                Ok(Cow::Owned(output))
             }
             None => {
                 warn!("Backend is running but has no stderr");
-                Ok(String::from("Backend is running but has no stderr"))
+                Ok(Cow::Borrowed("Backend is running but has no stderr"))
             }
         }
     }
