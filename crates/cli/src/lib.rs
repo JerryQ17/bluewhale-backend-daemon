@@ -39,10 +39,7 @@ enum SubCommand {
 impl Cli {
     pub fn handle(self, config: Config) -> String {
         let prefix = format!("http://{}:{}/backend", config.addr, config.port);
-        let client = Client::builder()
-            .timeout(Duration::from_secs(300))
-            .build()
-            .unwrap();
+        let client = Client::new();
         match self.sub_cmd {
             SubCommand::Status => client.get(prefix).send().unwrap().text().unwrap(),
             SubCommand::Start => client
