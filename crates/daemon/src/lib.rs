@@ -201,7 +201,9 @@ impl BackendProcess {
     }
 
     pub fn kill(mut self) -> io::Result<Output> {
-        self.process.kill()?;
+        Command::new("kill")
+            .arg(self.process.id().to_string())
+            .output()?;
         self.process.wait_with_output()
     }
 
