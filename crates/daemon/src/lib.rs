@@ -39,11 +39,11 @@ impl AppState {
         self.lock().commit_info()
     }
 
-    pub fn stdout(&self) -> io::Result<&str> {
+    pub fn stdout(&self) -> io::Result<Cow<'static, str>> {
         self.lock().stdout()
     }
 
-    pub fn stderr(&self) -> io::Result<&str> {
+    pub fn stderr(&self) -> io::Result<Cow<'static, str>> {
         self.lock().stderr()
     }
 
@@ -88,22 +88,22 @@ impl Backend {
         ))
     }
 
-    pub fn stdout(&mut self) -> io::Result<&str> {
+    pub fn stdout(&mut self) -> io::Result<Cow<'static, str>> {
         match self.process.as_mut() {
-            Some(process) => process.stdout(),
+            Some(process) => process.stdout().map(Cow::Owned),
             None => {
                 warn!("Backend is not running");
-                Ok("Backend is not running")
+                Ok(Cow::Borrowed("Backend is not running"))
             }
         }
     }
 
-    pub fn stderr(&mut self) -> io::Result<&str> {
+    pub fn stderr(&mut self) -> io::Result<Cow<'static, str>> {
         match self.process.as_mut() {
-            Some(process) => process.stderr(),
+            Some(process) => process.stderr().map(Cow::Owned),
             None => {
                 warn!("Backend is not running");
-                Ok("Backend is not running")
+                Ok(Cow::Borrowed("Backend is not running"))
             }
         }
     }
@@ -214,11 +214,11 @@ impl BackendProcess {
         }
     }
 
-    pub fn stdout(&mut self) -> io::Result<&str> {
+    pub fn stdout(&mut self) -> io::Result<String> {
         while let Some(output) = self.poll_stdout()? {
             self.stdout.push_str(&output);
         }
-        Ok(&self.stdout)
+        Ok(self.stdout.clone())
     }
 
     pub fn poll_stderr(&mut self) -> io::Result<Option<String>> {
@@ -230,10 +230,10 @@ impl BackendProcess {
         }
     }
 
-    pub fn stderr(&mut self) -> io::Result<&str> {
+    pub fn stderr(&mut self) -> io::Result<String> {
         while let Some(output) = self.poll_stderr()? {
             self.stderr.push_str(&output);
         }
-        Ok(&self.stderr)
+        Ok(self.stderr.clone())
     }
 }
