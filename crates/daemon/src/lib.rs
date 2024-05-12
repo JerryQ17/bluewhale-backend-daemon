@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::fs::canonicalize;
-use std::io::{self, Read, Stderr, Stdout};
+use std::io::{self, Read};
 use std::path::PathBuf;
 use std::process::{Child, Command, Output};
 use std::process::{ChildStderr, ChildStdout, Stdio};
@@ -89,45 +89,21 @@ impl Backend {
     }
 
     pub fn stdout(&mut self) -> io::Result<Cow<'static, str>> {
-        if self.process.is_none() {
-            warn!("Backend is not running");
-            return Ok(Cow::Borrowed("Backend is not running"));
-        }
-        let stdout = self.process.as_mut().unwrap().stdout.take();
-        match stdout {
-            Some(mut stdout) => {
-                let mut output = String::new();
-                info!(
-                    "Read {} bytes from backend stdout",
-                    stdout.read_to_string(&mut output)?
-                );
-                Ok(Cow::Owned(output))
-            }
+        match self.process.as_mut() {
+            Some(process) => process.stdout().map(Cow::Owned),
             None => {
-                warn!("Backend is running but has no stdout");
-                Ok(Cow::Borrowed("Backend is running but has no stdout"))
+                warn!("Backend is not running");
+                Ok(Cow::Borrowed("Backend is not running"))
             }
         }
     }
 
     pub fn stderr(&mut self) -> io::Result<Cow<'static, str>> {
-        if self.process.is_none() {
-            warn!("Backend is not running");
-            return Ok(Cow::Borrowed("Backend is not running"));
-        }
-        let stderr = self.process.as_mut().unwrap().stderr.take();
-        match stderr {
-            Some(mut stderr) => {
-                let mut output = String::new();
-                info!(
-                    "Read {} bytes from backend stderr",
-                    stderr.read_to_string(&mut output)?
-                );
-                Ok(Cow::Owned(output))
-            }
+        match self.process.as_mut() {
+            Some(process) => process.stderr().map(Cow::Owned),
             None => {
-                warn!("Backend is running but has no stderr");
-                Ok(Cow::Borrowed("Backend is running but has no stderr"))
+                warn!("Backend is not running");
+                Ok(Cow::Borrowed("Backend is not running"))
             }
         }
     }
@@ -223,5 +199,17 @@ impl BackendProcess {
     pub fn kill(mut self) -> io::Result<Output> {
         self.process.kill()?;
         self.process.wait_with_output()
+    }
+
+    pub fn stdout(&mut self) -> io::Result<String> {
+        let mut output = String::new();
+        self.stdout.read_available_to_string(&mut output)?;
+        Ok(output)
+    }
+
+    pub fn stderr(&mut self) -> io::Result<String> {
+        let mut output = String::new();
+        self.stderr.read_available_to_string(&mut output)?;
+        Ok(output)
     }
 }
