@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fs;
 use std::io::Write;
 
 use axum::extract::{Multipart, State};
@@ -40,6 +41,19 @@ pub async fn handler(State(state): State<AppState>, mut multipart: Multipart) ->
                 }
                 let temp_path = temp.path();
                 let backend_path = state.path();
+                info!("Deleting backend directory");
+                if let Err(e) = Command::new("rm")
+                    .arg("-rf")
+                    .arg(&backend_path)
+                    .output()
+                    .await
+                {
+                    err_msg = Cow::Owned(format!("Failed to delete backend directory: {}", e));
+                    warn!("{}", &err_msg);
+                    continue;
+                }
+                info!("Creating backend directory");
+                fs::create_dir(&backend_path).unwrap();
                 info!("Extracting file to {}", &backend_path.display());
                 if let Err(e) = Command::new("tar")
                     .arg("-xf")
