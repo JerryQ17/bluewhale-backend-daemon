@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::ffi::OsStr;
 use std::fs::canonicalize;
-use std::io::{self, Read};
+use std::io;
 use std::path::PathBuf;
 use std::process::{Child, Command, Output};
 use std::process::{ChildStderr, ChildStdout, Stdio};
@@ -177,8 +177,10 @@ impl Backend {
 
 pub struct BackendProcess {
     process: Child,
-    stdout: NonBlockingReader<ChildStdout>,
-    stderr: NonBlockingReader<ChildStderr>,
+    stdout: String,
+    stdout_rd: NonBlockingReader<ChildStdout>,
+    stderr: String,
+    stderr_rd: NonBlockingReader<ChildStderr>,
 }
 
 impl BackendProcess {
@@ -190,8 +192,10 @@ impl BackendProcess {
             .stderr(Stdio::piped())
             .spawn()?;
         Ok(Self {
-            stdout: NonBlockingReader::from_fd(process.stdout.take().unwrap())?,
-            stderr: NonBlockingReader::from_fd(process.stderr.take().unwrap())?,
+            stdout_rd: NonBlockingReader::from_fd(process.stdout.take().unwrap())?,
+            stdout: String::new(),
+            stderr_rd: NonBlockingReader::from_fd(process.stderr.take().unwrap())?,
+            stderr: String::new(),
             process,
         })
     }
@@ -201,15 +205,35 @@ impl BackendProcess {
         self.process.wait_with_output()
     }
 
-    pub fn stdout(&mut self) -> io::Result<String> {
+    pub fn poll_stdout(&mut self) -> io::Result<Option<String>> {
         let mut output = String::new();
-        self.stdout.read_available_to_string(&mut output)?;
-        Ok(output)
+        if self.stdout_rd.read_available_to_string(&mut output)? == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(output))
+        }
     }
 
-    pub fn stderr(&mut self) -> io::Result<String> {
+    pub fn stdout(&mut self) -> io::Result<&str> {
+        while let Some(output) = self.poll_stdout()? {
+            self.stdout.push_str(&output);
+        }
+        Ok(&self.stdout)
+    }
+
+    pub fn poll_stderr(&mut self) -> io::Result<Option<String>> {
         let mut output = String::new();
-        self.stderr.read_available_to_string(&mut output)?;
-        Ok(output)
+        if self.stderr_rd.read_available_to_string(&mut output)? == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(output))
+        }
+    }
+
+    pub fn stderr(&mut self) -> io::Result<&str> {
+        while let Some(output) = self.poll_stderr()? {
+            self.stderr.push_str(&output);
+        }
+        Ok(&self.stderr)
     }
 }
