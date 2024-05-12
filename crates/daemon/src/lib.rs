@@ -39,11 +39,11 @@ impl AppState {
         self.lock().commit_info()
     }
 
-    pub fn stdout(&self) -> io::Result<Cow<'static, str>> {
+    pub fn stdout(&self) -> io::Result<&str> {
         self.lock().stdout()
     }
 
-    pub fn stderr(&self) -> io::Result<Cow<'static, str>> {
+    pub fn stderr(&self) -> io::Result<&str> {
         self.lock().stderr()
     }
 
@@ -88,22 +88,22 @@ impl Backend {
         ))
     }
 
-    pub fn stdout(&mut self) -> io::Result<Cow<'static, str>> {
+    pub fn stdout(&mut self) -> io::Result<&str> {
         match self.process.as_mut() {
-            Some(process) => process.stdout().map(Cow::Owned),
+            Some(process) => process.stdout(),
             None => {
                 warn!("Backend is not running");
-                Ok(Cow::Borrowed("Backend is not running"))
+                Ok("Backend is not running")
             }
         }
     }
 
-    pub fn stderr(&mut self) -> io::Result<Cow<'static, str>> {
+    pub fn stderr(&mut self) -> io::Result<&str> {
         match self.process.as_mut() {
-            Some(process) => process.stderr().map(Cow::Owned),
+            Some(process) => process.stderr(),
             None => {
                 warn!("Backend is not running");
-                Ok(Cow::Borrowed("Backend is not running"))
+                Ok("Backend is not running")
             }
         }
     }

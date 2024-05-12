@@ -24,7 +24,7 @@ pub async fn handler(State(state): State<AppState>) -> String {
         }
         Err(e) => {
             warn!("Failed to get stdout: {}", e);
-            Cow::Borrowed("Failed to get stdout")
+            "Failed to get stdout"
         }
     };
     let stderr = match backend.stderr() {
@@ -34,7 +34,7 @@ pub async fn handler(State(state): State<AppState>) -> String {
         }
         Err(e) => {
             warn!("Failed to get stderr: {}", e);
-            Cow::Borrowed("Failed to get stderr")
+            "Failed to get stderr"
         }
     };
     format!(
