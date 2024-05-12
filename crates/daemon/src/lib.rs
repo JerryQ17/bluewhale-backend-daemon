@@ -1,17 +1,19 @@
 use std::borrow::Cow;
+use std::ffi::OsStr;
 use std::fs::canonicalize;
-use std::io::{self, Read};
+use std::io::{self, Read, Stderr, Stdout};
 use std::path::PathBuf;
-use std::process::Stdio;
-use std::process::{Child, Command};
+use std::process::{Child, Command, Output};
+use std::process::{ChildStderr, ChildStdout, Stdio};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use nonblock::NonBlockingReader;
 use tracing::{error, info, warn};
 
 pub mod api;
 pub mod config;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct AppState(Arc<Mutex<Backend>>);
 
 impl AppState {
@@ -49,7 +51,7 @@ impl AppState {
         self.lock().start()
     }
 
-    pub fn stop(&self) -> io::Result<()> {
+    pub fn stop(&self) -> io::Result<Cow<'static, str>> {
         self.lock().stop()
     }
 
@@ -58,9 +60,8 @@ impl AppState {
     }
 }
 
-#[derive(Debug, Default)]
 pub struct Backend {
-    process: Option<Child>,
+    process: Option<BackendProcess>,
     path: PathBuf,
 }
 
@@ -162,16 +163,9 @@ impl Backend {
         }
         for entry in self.path.join("target").read_dir()?.filter_map(Result::ok) {
             if entry.file_name().to_string_lossy().ends_with(".jar") {
-                let path = canonicalize(entry.path())?;
+                let jar = canonicalize(entry.path())?;
                 info!("Found jar: {}", entry.path().display());
-                self.process = Some(
-                    Command::new("java")
-                        .arg("-jar")
-                        .arg(&path)
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped())
-                        .spawn()?,
-                );
+                self.process = Some(BackendProcess::new(jar)?);
                 return Ok(());
             }
         }
@@ -179,16 +173,22 @@ impl Backend {
         Err(io::Error::new(io::ErrorKind::NotFound, "No jar found"))
     }
 
-    pub fn stop(&mut self) -> io::Result<()> {
-        match &mut self.process {
+    pub fn stop(&mut self) -> io::Result<Cow<'static, str>> {
+        match self.process.take() {
             Some(process) => {
-                process.kill()?;
-                self.process = None;
-                Ok(())
+                let output = process.kill()?;
+                let msg = format!(
+                    "Backend stopped with status: {}\nstdout: \n{}\nstderr:\n {}\n",
+                    output.status,
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                info!("{}", msg);
+                Ok(Cow::Owned(msg))
             }
             None => {
                 warn!("Backend is not running");
-                Ok(())
+                Ok(Cow::Borrowed("Backend is not running"))
             }
         }
     }
@@ -196,5 +196,32 @@ impl Backend {
     pub fn restart(&mut self) -> io::Result<()> {
         self.stop()?;
         self.start()
+    }
+}
+
+pub struct BackendProcess {
+    process: Child,
+    stdout: NonBlockingReader<ChildStdout>,
+    stderr: NonBlockingReader<ChildStderr>,
+}
+
+impl BackendProcess {
+    pub fn new<S: AsRef<OsStr>>(jar: S) -> io::Result<Self> {
+        let mut process = Command::new("java")
+            .arg("-jar")
+            .arg(jar)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
+        Ok(Self {
+            stdout: NonBlockingReader::from_fd(process.stdout.take().unwrap())?,
+            stderr: NonBlockingReader::from_fd(process.stderr.take().unwrap())?,
+            process,
+        })
+    }
+
+    pub fn kill(mut self) -> io::Result<Output> {
+        self.process.kill()?;
+        self.process.wait_with_output()
     }
 }

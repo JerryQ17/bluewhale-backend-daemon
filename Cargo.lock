@@ -270,6 +270,7 @@ dependencies = [
  "axum",
  "futures-util",
  "log",
+ "nonblock",
  "serde",
  "serde_json",
  "tempfile",
@@ -640,6 +641,15 @@ dependencies = [
  "mime",
  "spin",
  "version_check",
+]
+
+[[package]]
+name = "nonblock"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51c7a4f22e5f2e2bd805d6ab56f1ae87eb1815673e1b452048896fb687a8a3d4"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

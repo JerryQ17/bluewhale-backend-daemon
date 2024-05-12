@@ -7,9 +7,9 @@ use crate::AppState;
 
 pub async fn handler(State(state): State<AppState>) -> Cow<'static, str> {
     match state.stop() {
-        Ok(_) => {
+        Ok(s) => {
             info!("Backend stopped");
-            Cow::Borrowed("Backend stopped\n")
+            s
         }
         Err(e) => {
             let msg = format!("Failed to stop backend: {}\n", e);
