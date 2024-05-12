@@ -11,6 +11,9 @@ use crate::AppState;
 const FIELD_NAME: &str = "spring-boot-tar-gz-archive";
 
 pub async fn handler(State(state): State<AppState>, mut multipart: Multipart) -> Cow<'static, str> {
+    if state.running() {
+        return Cow::Borrowed("Backend is running, stop it first");
+    }
     let mut err_msg = Cow::Borrowed("No valid part provided");
     while let Ok(Some(field)) = multipart.next_field().await {
         match field.name() {

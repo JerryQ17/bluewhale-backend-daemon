@@ -30,6 +30,10 @@ impl AppState {
             }
         }
     }
+    
+    pub fn running(&self) -> bool {
+        self.lock().running()
+    }
 
     pub fn path(&self) -> PathBuf {
         self.lock().path()
@@ -73,6 +77,10 @@ impl Backend {
         }
     }
 
+    pub fn running(&self) -> bool {
+        self.process.is_some()
+    }
+
     pub fn path(&self) -> PathBuf {
         self.path.clone()
     }
@@ -109,7 +117,7 @@ impl Backend {
     }
 
     pub fn start(&mut self) -> io::Result<()> {
-        if self.process.is_some() {
+        if self.running() {
             warn!("Backend is already running");
             return Ok(());
         }
